@@ -193,4 +193,21 @@ contract SoulBoundToken is ERC721, ERC721URIStorage, Ownable {
         );
         _burn(tokenId);
     }
+
+    function _approve(address, uint256) internal virtual override(ERC721) {
+        revert("SBT's cannot be Transfered");
+    }
+
+    /**
+     * @dev Approve `operator` to operate on all of `owner` tokens
+     *
+     * Emits an {ApprovalForAll} event.
+     */
+    function _setApprovalForAll(
+        address,
+        address,
+        bool
+    ) internal virtual override(ERC721) {
+        revert("SBT's cannot be Transfered");
+    }
 }

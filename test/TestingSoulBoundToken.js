@@ -244,5 +244,40 @@ describe("SoulBoundToken Contract", function () {
         });
       });
     });
+    describe("Approval Function Testing", function () {
+      it("Set Approval for all & Testing", async function () {
+        const {
+          soulBoundToken,
+          owner,
+          account1,
+          account2,
+          account3,
+          account4,
+          account5,
+        } = await loadFixture(deployContract);
+
+        await soulBoundToken.safeMint(account1.address, 1, "ipfs://URI/1", [
+          "" + account2.address,
+          "" + account3.address,
+          "" + account4.address,
+        ]);
+
+        await expect(
+          soulBoundToken
+            .connect(account1)
+            .setApprovalForAll(owner.address, true)
+        ).to.be.revertedWith("SBT's cannot be Transfered");
+
+        await expect(
+          soulBoundToken
+            .connect(account1)
+            .setApprovalForAll(owner.address, true)
+        ).to.be.revertedWith("SBT's cannot be Transfered");
+
+        await expect(
+          soulBoundToken.connect(account1).approve(owner.address, 1)
+        ).to.be.revertedWith("SBT's cannot be Transfered");
+      });
+    });
   });
 });
