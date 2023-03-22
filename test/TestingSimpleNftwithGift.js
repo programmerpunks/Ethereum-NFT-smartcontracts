@@ -6,7 +6,7 @@ const { anyValue } = require("@nomicfoundation/hardhat-chai-matchers/withArgs");
 const { expect } = require("chai");
 const { ethers } = require("hardhat");
 
-describe("Simple NFT with gift functionality", function () {
+describe("Simple NFT with Reveal functionality", function () {
   // We define a fixture to reuse the same setup in every test.
   // We use loadFixture to run this setup once, snapshot that state,
   // and reset Hardhat Network to that snapshot in every test.
@@ -21,6 +21,8 @@ describe("Simple NFT with gift functionality", function () {
       account5,
       account6,
       account7,
+      account8,
+      account9,
     ] = await ethers.getSigners();
 
     const SimpleNFTGift = await ethers.getContractFactory("simpleNFTGift");
@@ -30,14 +32,21 @@ describe("Simple NFT with gift functionality", function () {
       "ipfs://URI/"
     );
 
-    await simpleNFTGift.setMintState(true);
+    // const SimpleNFTReveal = await ethers.getContractFactory("simpleNFTReveal");
+    // const simpleNFTReveal = await SimpleNFTReveal.deploy(
+    //   "Test",
+    //   "test",
+    //   "ipfs://URI/",
+    //   "ipfs://notRevealedUri/"
+    // );
 
     const maxMintAmount = 3;
     const maxSupply = 20; //total
+    const giftSupply = 10;
     const cost = 0.01;
 
-    return {
-      simpleNFTGift,
+    await simpleNFTGift.setMintState(true);
+    const accounts = [
       owner,
       account1,
       account2,
@@ -46,53 +55,58 @@ describe("Simple NFT with gift functionality", function () {
       account5,
       account6,
       account7,
+      account8,
+      account9,
+    ];
+    return {
+      simpleNFT: simpleNFTGift,
+      owner,
+      account1,
+      account2,
+      account3,
+      account4,
+      account5,
+      account6,
+      account7,
+      accounts,
       maxMintAmount,
       maxSupply,
       cost,
+      giftSupply,
     };
   }
 
   describe("Deployment", function () {
     it("Should set the right owner of Contract", async function () {
-      const { simpleNFTGift, owner } = await loadFixture(deployContract);
+      const { simpleNFT, owner } = await loadFixture(deployContract);
 
-      expect(await simpleNFTGift.owner()).to.equal(owner.address);
+      expect(await simpleNFT.owner()).to.equal(owner.address);
     });
 
     it("Should have totalSupply equal to zero", async function () {
-      const { simpleNFTGift, owner } = await loadFixture(deployContract);
+      const { simpleNFT, owner } = await loadFixture(deployContract);
 
-      expect(await simpleNFTGift.totalSupply()).to.equal(0);
+      expect(await simpleNFT.totalSupply()).to.equal(0);
     });
   });
 
   describe("Minting", function () {
     describe("Validations", function () {
       it("Should revert with the error if minting is paused", async function () {
-        const { simpleNFTGift, owner, account1 } = await loadFixture(
+        const { simpleNFT, owner, account1 } = await loadFixture(
           deployContract
         );
-        await simpleNFTGift.setMintState(false);
-        const mintState = await simpleNFTGift.mintState();
-        console.log("MintState value:", mintState);
-        await expect(
-          simpleNFTGift.connect(account1).mint(1)
-        ).to.be.revertedWith("Minting is paused");
-      });
+        await simpleNFT.setMintState(false);
+        const mintState = await simpleNFT.mintState();
 
-      it("Should revert with the error if a account that is NOT owner tries to pause", async function () {
-        const { simpleNFTGift, owner, account1 } = await loadFixture(
-          deployContract
+        await expect(simpleNFT.connect(account1).mint(1)).to.be.revertedWith(
+          "Minting is paused"
         );
-
-        await expect(
-          simpleNFTGift.connect(account1).setMintState(false)
-        ).to.be.revertedWith("Ownable: caller is not the owner");
       });
 
       it("Should revert with the error if a account that is NOT owner tries to gift", async function () {
         const {
-          simpleNFTGift,
+          simpleNFT,
           owner,
           account1,
           account3,
@@ -102,149 +116,119 @@ describe("Simple NFT with gift functionality", function () {
         } = await loadFixture(deployContract);
 
         await expect(
-          simpleNFTGift
-            .connect(account1)
-            .gift(maxMintAmount, account3.address, {
-              value: ethers.utils.parseEther("" + cost * maxMintAmount),
-            })
+          simpleNFT.connect(account1).gift(maxMintAmount, account3.address, {
+            value: ethers.utils.parseEther("" + cost * maxMintAmount),
+          })
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("Should revert with the error if a account that is NOT owner setMintState", async function () {
+        const { simpleNFT, owner, account1, account3 } = await loadFixture(
+          deployContract
+        );
+
+        await expect(
+          simpleNFT.connect(account1).setMintState(false)
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
 
       it("Should revert with the error if mint amount is zero", async function () {
-        const { simpleNFTGift, owner, account1, maxMintAmount } =
-          await loadFixture(deployContract);
+        const { simpleNFT, owner, account1, maxMintAmount } = await loadFixture(
+          deployContract
+        );
 
+        await expect(simpleNFT.connect(account1).mint(0)).to.be.revertedWith(
+          "Mint amount Cannot be zero"
+        );
         await expect(
-          simpleNFTGift.connect(account1).mint(0)
-        ).to.be.revertedWith("Mint amount Cannot be zero");
-        await expect(
-          simpleNFTGift.connect(account1).mint(maxMintAmount + 1)
+          simpleNFT.connect(account1).mint(maxMintAmount + 1)
         ).to.be.revertedWith("Cannot mint more than max mint amount");
       });
 
       it("Should revert with the error if already minted max NFTs User", async function () {
         const {
-          simpleNFTGift,
+          simpleNFT,
           owner,
           account1,
           maxMintAmount,
-          maxSupply,
+
           cost,
         } = await loadFixture(deployContract);
 
-        const minting = await simpleNFTGift
-          .connect(account1)
-          .mint(maxMintAmount, {
-            value: ethers.utils.parseEther("" + cost * maxMintAmount),
-          });
-        console.log("minting: " + minting);
+        const minting = await simpleNFT.connect(account1).mint(maxMintAmount, {
+          value: ethers.utils.parseEther("" + cost * maxMintAmount),
+        });
+
         await expect(
-          simpleNFTGift.connect(account1).mint(1, {
+          simpleNFT.connect(account1).mint(1, {
             value: ethers.utils.parseEther("" + cost),
           })
         ).to.be.revertedWith("You cannot mint more than max NFTs");
       });
+      // TODO: FIX THESE done
+      it("Should revert mint more than max NFTs for a wallet", async function () {
+        const { simpleNFT, account1, maxMintAmount, cost } = await loadFixture(
+          deployContract
+        );
 
-      // TODO: SET FOLLOWING
-      it("Should revert with the error if mint more than max Supply Boundry for user", async function () {
-        const {
-          simpleNFTGift,
-          owner,
-          account1,
-          account2,
-          account3,
-          account4,
-          account5,
-          account6,
-          account7,
-          maxMintAmount,
-          maxSupply,
-          cost,
-        } = await loadFixture(deployContract);
-
-        await simpleNFTGift.connect(owner).mint(3, {
-          value: ethers.utils.parseEther("0.03"),
+        await simpleNFT.gift(maxMintAmount, account1.address, {
+          value: ethers.utils.parseEther("" + maxMintAmount * cost),
         });
-
-        await simpleNFTGift.connect(account1).mint(3, {
-          value: ethers.utils.parseEther("0.03"),
-        });
-        await simpleNFTGift.connect(account2).mint(3, {
-          value: ethers.utils.parseEther("0.03"),
-        });
-        // mint 9
         await expect(
-          simpleNFTGift.connect(account3).mint(2, {
-            value: ethers.utils.parseEther("0.02"),
-          })
-        ).to.be.revertedWith("Cannot mint more than max Supply");
-
-        await simpleNFTGift.connect(owner).gift(1, account3.address, {
-          value: ethers.utils.parseEther("0.01"),
-        });
-
-        await simpleNFTGift.connect(owner).gift(2, account3.address, {
-          value: ethers.utils.parseEther("0.02"),
-        });
-        // mint 9 gift 3
-        await expect(
-          simpleNFTGift.connect(owner).gift(1, account3.address, {
-            value: ethers.utils.parseEther("0.01"),
+          simpleNFT.gift(1, account1.address, {
+            value: ethers.utils.parseEther("" + cost),
           })
         ).to.be.revertedWith(
           "You cannot mint more than max NFTs for this wallet"
         );
+      });
 
-        await simpleNFTGift.connect(owner).gift(3, account4.address, {
-          value: ethers.utils.parseEther("0.03"),
-        });
-        // mint 9 gift 6
-        await expect(
-          simpleNFTGift.connect(owner).gift(1, account4.address, {
-            value: ethers.utils.parseEther("0.01"),
-          })
-        ).to.be.revertedWith(
-          "You cannot mint more than max NFTs for this wallet"
-        );
-        await simpleNFTGift.connect(owner).gift(3, account5.address, {
-          value: ethers.utils.parseEther("0.03"),
-        });
-        // mint 9 gift 9
-        await expect(
-          simpleNFTGift.connect(owner).gift(3, account6.address, {
-            value: ethers.utils.parseEther("0.03"),
-          })
-        ).to.be.revertedWith("Cannot mint this amount as gift");
+      it("Should revert when amount as gift more than gift supply", async function () {
+        const { simpleNFT, accounts, giftSupply, maxMintAmount, cost } =
+          await loadFixture(deployContract);
+        let gifted = 0;
 
-        await simpleNFTGift.connect(owner).gift(1, account6.address, {
-          value: ethers.utils.parseEther("0.01"),
-        });
-        // mint 9 gift 10
-        await simpleNFTGift.connect(account6).mint(1, {
-          value: ethers.utils.parseEther("0.01"),
-        });
-        // mint 10 gift 10
-        await expect(
-          simpleNFTGift.connect(account7).mint(1, {
-            value: ethers.utils.parseEther("0.01"),
-          })
-        ).to.be.revertedWith("Cannot mint more than max Supply");
+        for (let index = 0; index < accounts.length; index++) {
+          if (giftSupply > gifted) {
+            const toMint = giftSupply - gifted;
+            if (toMint > maxMintAmount) {
+              await simpleNFT.gift(maxMintAmount, accounts[index].address, {
+                value: ethers.utils.parseEther("" + cost * maxMintAmount),
+              });
+              gifted += maxMintAmount;
+            } else {
+              await expect(
+                simpleNFT.gift(toMint + 1, accounts[index + 1].address, {
+                  value: ethers.utils.parseEther("" + cost),
+                })
+              ).to.be.revertedWith("Cannot mint this amount as gift");
+
+              await simpleNFT.gift(toMint, accounts[index].address, {
+                value: ethers.utils.parseEther("" + cost * toMint),
+              });
+              gifted += toMint;
+            }
+          }
+
+          if (gifted == giftSupply) {
+            break;
+          }
+        }
       });
 
       it("Should revert with the error if cost is not equal to set cost ", async function () {
         const {
-          simpleNFTGift,
+          simpleNFT,
           owner,
           account1,
           account2,
           account3,
           maxMintAmount,
-          maxSupply,
           cost,
         } = await loadFixture(deployContract);
 
         await expect(
-          simpleNFTGift.connect(account3).mint(1, {
+          simpleNFT.connect(account3).mint(1, {
             value: ethers.utils.parseEther("" + cost / 2),
           })
         ).to.be.revertedWith("Cost Error");
@@ -254,58 +238,43 @@ describe("Simple NFT with gift functionality", function () {
   describe("WithDraw ", function () {
     describe("Validations", function () {
       it("Should revert with the error if caller is not owner of contract", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
-          await loadFixture(deployContract);
-
-        await expect(
-          simpleNFTGift.connect(account3).withdraw()
-        ).to.be.revertedWith("Ownable: caller is not the owner");
+        const { simpleNFT, account1 } = await loadFixture(deployContract);
+        await expect(simpleNFT.connect(account1).withdraw()).to.be.revertedWith(
+          "Ownable: caller is not the owner"
+        );
       });
+
       it("Should revert with the if balance of contract is zero", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
-          await loadFixture(deployContract);
-        await expect(
-          simpleNFTGift.connect(owner).withdraw()
-        ).to.be.revertedWith("Balance of this Contract is Zero");
+        const { simpleNFT, owner } = await loadFixture(deployContract);
+        await expect(simpleNFT.connect(owner).withdraw()).to.be.revertedWith(
+          "Balance of this Contract is Zero"
+        );
       });
     });
 
     describe("Transfer", function () {
       it("Should revert with the if Balance of contract is not widhdrawn", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
+        const { simpleNFT, owner, account1, maxMintAmount, cost } =
           await loadFixture(deployContract);
 
-        const balanceOfaccount2before = BigInt(
-          await ethers.provider.getBalance(account2.address)
-        );
-        console.log("balanceOfaccount2before", balanceOfaccount2before);
-
-        await simpleNFTGift.connect(account2).mint(2, {
-          value: ethers.utils.parseEther("0.02"),
+        await simpleNFT.connect(account1).mint(maxMintAmount, {
+          value: ethers.utils.parseEther("" + cost * maxMintAmount),
         });
 
         expect(
-          BigInt(await ethers.provider.getBalance(simpleNFTGift.address))
-        ).to.equal(ethers.utils.parseEther("0.02"));
+          BigInt(await ethers.provider.getBalance(simpleNFT.address))
+        ).to.equal(ethers.utils.parseEther("" + cost * maxMintAmount));
 
-        const balanceOfaccount2After = BigInt(
-          await ethers.provider.getBalance(simpleNFTGift.address)
+        await expect(() => simpleNFT.withdraw()).to.changeEtherBalances(
+          [simpleNFT.address, owner.address],
+          [
+            ethers.utils.parseEther("" + cost * maxMintAmount * -1),
+            ethers.utils.parseEther("" + cost * maxMintAmount),
+          ]
         );
-        console.log("balanceOfaccount2After", balanceOfaccount2After);
-
-        const balanceOfOwnerBefore = BigInt(
-          await ethers.provider.getBalance(owner.address)
-        );
-        console.log("balanceOfOwnerBefore:", balanceOfOwnerBefore);
-        const widhdrawn = await simpleNFTGift.withdraw();
-
-        const balanceOfOwnerAfter = BigInt(
-          await ethers.provider.getBalance(owner.address)
-        );
-        console.log("balanceOfOwnerAfter:", balanceOfOwnerAfter);
 
         expect(
-          BigInt(await ethers.provider.getBalance(simpleNFTGift.address))
+          BigInt(await ethers.provider.getBalance(simpleNFT.address))
         ).to.equal(BigInt(0));
       });
     });
@@ -314,273 +283,325 @@ describe("Simple NFT with gift functionality", function () {
   describe("function tokenURI ", function () {
     describe("Validations", function () {
       it("Should revert with the error for nonexistent token", async function () {
-        const { simpleNFTGift, owner, account1 } = await loadFixture(
+        const { simpleNFT, owner, account1 } = await loadFixture(
           deployContract
         );
 
         await expect(
-          simpleNFTGift.connect(account1).tokenURI(1)
+          simpleNFT.connect(account1).tokenURI(1)
         ).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
       });
-      it("Should revert with the URI is not Correct", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
-          await loadFixture(deployContract);
-        await simpleNFTGift.connect(owner).mint(3, {
-          value: ethers.utils.parseEther("0.03"),
-        });
-        const tokenurii = await simpleNFTGift.tokenURI(1);
-        console.log("tokenurii", tokenurii);
 
-        expect(await simpleNFTGift.tokenURI(1)).to.equal("ipfs://URI/1.json");
+      it("Should revert when non owner tries setBaseURI ", async function () {
+        const { simpleNFT, account1 } = await loadFixture(deployContract);
+        await expect(
+          simpleNFT.connect(account1).setBaseURI("ipfs://baseUR/")
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("Should revert if setBaseURI is not set:", async function () {
+        const { simpleNFT, owner, account1, cost } = await loadFixture(
+          deployContract
+        );
+        await simpleNFT.connect(owner).setBaseURI("ipfs://baseURI/");
+
+        await simpleNFT.gift(1, account1.address, {
+          value: ethers.utils.parseEther("" + cost),
+        });
+
+        expect(await simpleNFT.tokenURI(1)).to.equal("ipfs://baseURI/1.json");
+      });
+
+      it("Should revert with the URI is not Correct", async function () {
+        const { simpleNFT, owner, maxMintAmount, cost } = await loadFixture(
+          deployContract
+        );
+        await simpleNFT.connect(owner).mint(maxMintAmount, {
+          value: ethers.utils.parseEther("" + cost * maxMintAmount),
+        });
+
+        expect(await simpleNFT.tokenURI(1)).to.equal("ipfs://URI/1.json");
       });
     });
 
     describe("Testing Token Ids with nftsOnwedByWallet function", function () {
       it("Should revert with the if Wrong Token id", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
+        const { simpleNFT, owner, account1, account2, account3 } =
           await loadFixture(deployContract);
-        await simpleNFTGift.connect(owner).mint(3, {
+        await simpleNFT.connect(owner).mint(3, {
           value: ethers.utils.parseEther("0.03"),
         });
-
-        const ownerTokens = await simpleNFTGift
+        const ownerTokens = await simpleNFT
           .connect(owner)
           .nftsOnwedByWallet(owner.address);
-
-        console.log("MY tokens: ", [
-          ethers.BigNumber.from("1"),
-          ethers.BigNumber.from("2"),
-          ethers.BigNumber.from("3"),
-        ]);
-
-        console.log("ownerTokens", ...ownerTokens);
-        // expect(ownerTokens).to.equal([
+        console.log("ownerTokens", ownerTokens);
+        // const expectedVal = [
         //   ethers.BigNumber.from("1"),
         //   ethers.BigNumber.from("2"),
         //   ethers.BigNumber.from("3"),
-        // ]);
-        await simpleNFTGift.connect(account1).mint(3, {
+        // ];
+        // console.log("My TOkens", expectedVal);
+        // expect(ownerTokens).to.equal(expectedVal);
+        await simpleNFT.connect(account1).mint(3, {
           value: ethers.utils.parseEther("0.03"),
         });
-
-        const account1Tokens = await simpleNFTGift
+        const account1Tokens = await simpleNFT
           .connect(account1)
           .nftsOnwedByWallet(account1.address);
-
-        console.log("account1Tokens: ", account1Tokens);
-        await simpleNFTGift.connect(account2).mint(3, {
+        console.log("account1Tokens", account1Tokens);
+        await simpleNFT.connect(account2).mint(3, {
           value: ethers.utils.parseEther("0.03"),
         });
-
-        const account2Tokens = await simpleNFTGift
+        const account2Tokens = await simpleNFT
           .connect(account2)
           .nftsOnwedByWallet(account2.address);
-
-        console.log("account1Tokens: ", account2Tokens);
-
-        await simpleNFTGift.connect(account3).mint(1, {
+        console.log("account2Tokens", account2Tokens);
+        await simpleNFT.connect(account3).mint(1, {
           value: ethers.utils.parseEther("0.01"),
         });
-
-        const account3Tokens = await simpleNFTGift
+        const account3Tokens = await simpleNFT
           .connect(account3)
           .nftsOnwedByWallet(account3.address);
-
-        console.log("account1Tokens: ", account3Tokens);
-        // TODO: fix this lateron
-        // await expect(
-        //   simpleNFTGift.connect(account3).mint(2, {
-        //     value: ethers.utils.parseEther("0.02"),
-        //   })
-        // ).to.be.revertedWith("Cannot mint more than max Supply");
+        console.log("account3Tokens", account3Tokens);
+        await expect(
+          simpleNFT.connect(account3).mint(2, {
+            value: ethers.utils.parseEther("0.02"),
+          })
+        ).to.be.revertedWith("Cannot mint more than max Supply");
       });
     });
 
     describe("Testing of cost function", function () {
       it("validation of OnlyOwner", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
+        const { simpleNFT, owner, account1, account2, account3 } =
           await loadFixture(deployContract);
         await expect(
-          simpleNFTGift.connect(account2).setCost(ethers.utils.parseEther("1"))
+          simpleNFT.connect(account2).setCost(ethers.utils.parseEther("1"))
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
       it("Should revert with the if cost is not set", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
+        const { simpleNFT, owner, account1, account2, account3 } =
           await loadFixture(deployContract);
-
-        await simpleNFTGift
-          .connect(owner)
-          .setCost(ethers.utils.parseEther("1"));
-        expect(await simpleNFTGift.cost()).to.equal(
-          ethers.utils.parseEther("1")
-        );
+        const newCost = ethers.utils.parseEther("1");
+        await simpleNFT.connect(owner).setCost(newCost);
+        expect(await simpleNFT.cost()).to.equal(newCost);
       });
     });
 
+    describe("Testing of Reveal Functionality", function () {
+      it("validation of OnlyOwner", async function () {
+        const {
+          simpleNFT,
+          owner,
+          account1,
+          account2,
+          account3,
+          maxMintAmount,
+        } = await loadFixture(deployContract);
+        await expect(
+          simpleNFT
+            .connect(account2)
+            .setCost(ethers.utils.parseEther("" + maxMintAmount))
+        ).to.be.revertedWith("Ownable: caller is not the owner");
+      });
+
+      it("Should revert with the if cost is not set", async function () {
+        const { simpleNFT, owner } = await loadFixture(deployContract);
+
+        const newCost = ethers.utils.parseEther("1");
+        await simpleNFT.connect(owner).setCost(newCost);
+        expect(await simpleNFT.cost()).to.equal(newCost);
+      });
+    });
     describe("Testing of setmaxMintAmount function", function () {
       it("validation of OnlyOwner", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
-          await loadFixture(deployContract);
+        const { simpleNFT, owner, account1, maxMintAmount } = await loadFixture(
+          deployContract
+        );
         await expect(
-          simpleNFTGift.connect(account2).setmaxMintAmount(5)
+          simpleNFT.connect(account1).setmaxMintAmount(maxMintAmount + 1)
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
       it("Should revert with the if maxmint amount is not updated", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
-          await loadFixture(deployContract);
+        const { simpleNFT, owner, account1, maxMintAmount } = await loadFixture(
+          deployContract
+        );
 
-        await simpleNFTGift.connect(owner).setmaxMintAmount(1);
+        await simpleNFT.connect(owner).setmaxMintAmount(maxMintAmount + 1);
 
         await expect(
-          simpleNFTGift.connect(account2).mint(2)
+          simpleNFT.connect(account1).mint(maxMintAmount + 2)
         ).to.be.revertedWith("Cannot mint more than max mint amount");
 
-        expect(await simpleNFTGift.maxMintAmount()).to.equal(1);
+        expect(await simpleNFT.maxMintAmount()).to.equal(maxMintAmount + 1);
       });
     });
-    describe("Testing of setmaxMintAmount function", function () {
+    describe("Testing of setBaseURI and setBaseExtension function", function () {
       it("validation of OnlyOwner", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
-          await loadFixture(deployContract);
+        const { simpleNFT, account1 } = await loadFixture(deployContract);
         await expect(
-          simpleNFTGift.connect(account2).setBaseURI("ipfs://none")
+          simpleNFT.connect(account1).setBaseURI("ipfs://none")
         ).to.be.revertedWith("Ownable: caller is not the owner");
 
         await expect(
-          simpleNFTGift.connect(account2).setBaseExtension("ipfs://none")
+          simpleNFT.connect(account1).setBaseExtension("ipfs://none")
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
 
       it("Error if setBaseExtension is not set", async function () {
-        const { simpleNFTGift, owner, account1, account2, account3 } =
-          await loadFixture(deployContract);
-        const setbaseExtension = await simpleNFTGift
-          .connect(owner)
-          .setBaseExtension(".png");
-        const val = await simpleNFTGift.baseExtension();
-        expect(val).to.equal(".png");
+        const { simpleNFT, owner } = await loadFixture(deployContract);
+        await simpleNFT.connect(owner).setBaseExtension(".png");
+
+        const newExtension = await simpleNFT.baseExtension();
+        expect(newExtension).to.equal(".png");
       });
     });
   });
+
   describe("Testing of gift function ", function () {
     it("Validation", async function () {
-      const { simpleNFTGift, owner, account1, account2, account3, account4 } =
-        await loadFixture(deployContract);
+      const { simpleNFT, account1, maxMintAmount, cost } = await loadFixture(
+        deployContract
+      );
 
       await expect(
-        simpleNFTGift.connect(account1).gift(3, account3.address, {
-          value: ethers.utils.parseEther("0.03"),
+        simpleNFT.connect(account1).gift(maxMintAmount, account1.address, {
+          value: ethers.utils.parseEther("" + cost * maxMintAmount),
         })
       ).to.be.revertedWith("Ownable: caller is not the owner");
-      await simpleNFTGift.setMintState(false);
+      await simpleNFT.setMintState(false);
       await expect(
-        simpleNFTGift.gift(3, account3.address, {
-          value: ethers.utils.parseEther("0.03"),
+        simpleNFT.gift(maxMintAmount, account1.address, {
+          value: ethers.utils.parseEther("" + cost * maxMintAmount),
         })
       ).to.be.revertedWith("Minting is paused");
     });
+
     it("Should revert error when all gift are dispatched", async () => {
       //All Gift are dispatched
-      const { simpleNFTGift, owner, account1, account2, account3, account4 } =
+      // NOTE: hardhat has Only 10 accounts by defaults so if  giftSupply > 10* maxMintAmount then these test function are bound to fail
+      const { simpleNFT, accounts, account1, giftSupply, cost, maxMintAmount } =
         await loadFixture(deployContract);
 
-      await simpleNFTGift.gift(3, account1.address, {
-        value: ethers.utils.parseEther("0.03"),
-      });
-      await simpleNFTGift.gift(3, account2.address, {
-        value: ethers.utils.parseEther("0.03"),
-      });
-      await simpleNFTGift.gift(3, account3.address, {
-        value: ethers.utils.parseEther("0.03"),
-      });
-
-      await simpleNFTGift.gift(1, account4.address, {
-        value: ethers.utils.parseEther("0.01"),
-      });
+      let minted = 0;
+      for (let index = 0; index < accounts.length; index++) {
+        if (giftSupply > minted) {
+          const toMint = giftSupply - minted;
+          if (toMint > maxMintAmount) {
+            await simpleNFT.gift(maxMintAmount, accounts[index].address, {
+              value: ethers.utils.parseEther("" + cost * maxMintAmount),
+            });
+            minted += maxMintAmount;
+          } else {
+            await simpleNFT.gift(toMint, accounts[index].address, {
+              value: ethers.utils.parseEther("" + cost * toMint),
+            });
+            minted += toMint;
+          }
+        }
+      }
       await expect(
-        simpleNFTGift.gift(3, account4.address, {
-          value: ethers.utils.parseEther("0.03"),
+        simpleNFT.gift(1, account1.address, {
+          value: ethers.utils.parseEther("" + cost),
         })
       ).to.be.revertedWith("All Gift are dispatched");
     });
     it("Gift amount should be greater than zero", async () => {
-      const { simpleNFTGift, owner, account1, account2, account3, account4 } =
-        await loadFixture(deployContract);
+      const { simpleNFT, account1 } = await loadFixture(deployContract);
       await expect(
-        simpleNFTGift.gift(0, account4.address, {
+        simpleNFT.gift(0, account1.address, {
           value: ethers.utils.parseEther("0.01"),
         })
       ).to.be.revertedWith("Mint amount Cannot be zero");
     });
     it("Gift amount should be greater than maxMintamount", async () => {
-      const { simpleNFTGift, owner, account1, account2, account3, account4 } =
-        await loadFixture(deployContract);
+      const { simpleNFT, account1, cost, maxMintAmount } = await loadFixture(
+        deployContract
+      );
       await expect(
-        simpleNFTGift.gift(4, account4.address, {
-          value: ethers.utils.parseEther("0.01"),
+        simpleNFT.gift(maxMintAmount + 1, account1.address, {
+          value: ethers.utils.parseEther("" + cost * (maxMintAmount + 1)),
         })
       ).to.be.revertedWith("Cannot mint more than max mint amount");
     });
     it("Gift amount cost Error", async () => {
-      const { simpleNFTGift, owner, account1, account2, account3, account4 } =
-        await loadFixture(deployContract);
+      const { simpleNFT, account1, cost } = await loadFixture(deployContract);
       await expect(
-        simpleNFTGift.gift(1, account4.address, {
-          value: ethers.utils.parseEther("0.009"),
+        simpleNFT.gift(1, account1.address, {
+          value: ethers.utils.parseEther("" + cost / 2),
         })
       ).to.be.revertedWith("Cost Error");
     });
     it("Gift:Cannot mint more than max Supply", async () => {
       const {
-        simpleNFTGift,
-        owner,
-        account1,
-        account2,
-        account3,
-        account4,
-        account5,
-        account6,
-        account7,
+        simpleNFT,
+        accounts,
+        giftSupply,
         maxMintAmount,
         maxSupply,
         cost,
       } = await loadFixture(deployContract);
 
-      await simpleNFTGift.gift(3, account4.address, {
-        value: ethers.utils.parseEther("0.03"),
-      });
-      await simpleNFTGift.gift(3, account5.address, {
-        value: ethers.utils.parseEther("0.03"),
-      });
-      await simpleNFTGift.gift(2, account6.address, {
-        value: ethers.utils.parseEther("0.02"),
-      });
-      //mint 0 gift 8
-      await simpleNFTGift.mint(3, {
-        value: ethers.utils.parseEther("0.03"),
-      });
-      await simpleNFTGift.connect(account1).mint(3, {
-        value: ethers.utils.parseEther("0.03"),
-      });
-      await simpleNFTGift.connect(account2).mint(3, {
-        value: ethers.utils.parseEther("0.03"),
-      });
-      await simpleNFTGift.connect(account3).mint(1, {
-        value: ethers.utils.parseEther("0.01"),
-      });
+      let normalSupply = maxSupply - giftSupply;
+      let minted = 0;
+      let lastAccountIndex = 0;
 
-      // mint 10, gift 8
+      for (let index = 0; index < accounts.length; index++) {
+        if (normalSupply > minted) {
+          const toMint = normalSupply - minted;
+          if (toMint > maxMintAmount) {
+            await simpleNFT.connect(accounts[index]).mint(maxMintAmount, {
+              value: ethers.utils.parseEther("" + cost * maxMintAmount),
+            });
+            minted += maxMintAmount;
+          } else {
+            await simpleNFT.connect(accounts[index]).mint(toMint, {
+              value: ethers.utils.parseEther("" + cost * toMint),
+            });
+            minted += toMint;
+          }
+        }
+
+        lastAccountIndex = index;
+        if (minted == normalSupply) {
+          break;
+        }
+      }
+      let gifted = 0;
+
+      for (let index = lastAccountIndex + 1; index < accounts.length; index++) {
+        if (giftSupply > gifted) {
+          const toMint = giftSupply - gifted;
+          if (toMint > maxMintAmount) {
+            await simpleNFT.gift(maxMintAmount, accounts[index].address, {
+              value: ethers.utils.parseEther("" + cost * maxMintAmount),
+            });
+            gifted += maxMintAmount;
+          } else {
+            await simpleNFT.gift(toMint, accounts[index].address, {
+              value: ethers.utils.parseEther("" + cost * toMint),
+            });
+            gifted += toMint;
+          }
+        }
+
+        lastAccountIndex = index;
+
+        if (gifted == giftSupply) {
+          break;
+        }
+      }
       await expect(
-        simpleNFTGift.gift(3, account7.address, {
-          value: ethers.utils.parseEther("0.03"),
+        simpleNFT.connect(accounts[lastAccountIndex + 1]).mint(1, {
+          value: ethers.utils.parseEther("" + cost),
         })
-      ).to.be.revertedWith("Cannot mint this amount as gift");
+      ).to.be.revertedWith("Cannot mint more than max Supply");
 
-      await simpleNFTGift.gift(2, account7.address, {
-        value: ethers.utils.parseEther("0.02"),
-      });
-
-      expect(await simpleNFTGift.totalSupply()).to.equal(20);
+      await expect(
+        simpleNFT.gift(1, accounts[lastAccountIndex + 1].address, {
+          value: ethers.utils.parseEther("" + cost),
+        })
+      ).to.be.revertedWith("All Gift are dispatched");
     });
   });
 });
