@@ -4,7 +4,7 @@
     2. And a wallet can have only 3 nfts
     3. And in one transaction they can mint 3 nfts
     4. And these should be dynamic, owner can change after that
-    5. And owner can mint 10 nfts as guest for its team members
+    5. And owner can mint 10 nfts as gift for its team members
 */
 
 // SPDX-License-Identifier: MIT
@@ -64,11 +64,10 @@ contract simpleNFTGift is ERC721Enumerable, Ownable {
         }
     }
 
-    function gift(uint256 _mintAmount, address receiver)
-        external
-        payable
-        onlyOwner
-    {
+    function gift(
+        uint256 _mintAmount,
+        address receiver
+    ) external payable onlyOwner {
         uint256 supply = totalSupply();
         require(mintState, "Minting is paused");
         require(teamSupply > 0, "All Gift are dispatched");
@@ -94,13 +93,9 @@ contract simpleNFTGift is ERC721Enumerable, Ownable {
         }
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        virtual
-        override
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view virtual override returns (string memory) {
         require(
             _exists(tokenId),
             "ERC721Metadata: URI query for nonexistent token"
@@ -119,11 +114,9 @@ contract simpleNFTGift is ERC721Enumerable, Ownable {
                 : "";
     }
 
-    function nftsOnwedByWallet(address _owner)
-        external
-        view
-        returns (uint256[] memory)
-    {
+    function nftsOnwedByWallet(
+        address _owner
+    ) external view returns (uint256[] memory) {
         uint256 ownerTokenCount = balanceOf(_owner);
         uint256[] memory tokenIds = new uint256[](ownerTokenCount);
         for (uint256 i; i < ownerTokenCount; i++) {
@@ -145,10 +138,9 @@ contract simpleNFTGift is ERC721Enumerable, Ownable {
         baseURI = _newBaseURI;
     }
 
-    function setBaseExtension(string memory _newBaseExtension)
-        public
-        onlyOwner
-    {
+    function setBaseExtension(
+        string memory _newBaseExtension
+    ) public onlyOwner {
         baseExtension = _newBaseExtension;
     }
 
