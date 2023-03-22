@@ -10,7 +10,7 @@ async function main() {
     "ipfs://URI/",
     "ipfs://notRevealedUri/"
   );
-  console.log(`simpleNFTGift Contract address: ${simpleNftReveal.address}`);
+  console.log(`simpleNFTReveal Contract address: ${simpleNftReveal.address}`);
 }
 main()
   .then(() => process.exit(0))
