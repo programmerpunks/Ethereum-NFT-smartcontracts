@@ -3,14 +3,14 @@ async function main() {
   console.log(`Deploying contracts with the account: ${deployer.address}`);
   const balance = await deployer.getBalance();
   console.log(`Account balance: ${balance.toString()}`);
-  const NFT = await ethers.getContractFactory("simpleNFTReveal");
-  const nft = await NFT.deploy(
+  const SimpleNftReveal = await ethers.getContractFactory("simpleNFTReveal");
+  const simpleNftReveal = await simpleNftReveal.deploy(
     "Test",
     "test",
     "ipfs://URI/",
-    "ipfs://notRevealedUri"
+    "ipfs://notRevealedUri/"
   );
-  console.log(`simpleNFTGift Contract address: ${nft.address}`);
+  console.log(`simpleNFTGift Contract address: ${simpleNftReveal.address}`);
 }
 main()
   .then(() => process.exit(0))

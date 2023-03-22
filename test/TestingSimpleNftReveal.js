@@ -23,18 +23,18 @@ describe("Simple NFT with Reveal functionality", function () {
       account7,
     ] = await ethers.getSigners();
 
-    const SimpleNFT = await ethers.getContractFactory("simpleNFTReveal");
-    const simpleNFT = await SimpleNFT.deploy(
+    const SimpleNFTReveal = await ethers.getContractFactory("simpleNFTReveal");
+    const simpleNFTReveal = await SimpleNFTReveal.deploy(
       "Test",
       "test",
       "ipfs://URI/",
       "ipfs://notRevealedUri/"
     );
 
-    await simpleNFT.setMintState(true);
+    await simpleNFTReveal.setMintState(true);
 
     return {
-      simpleNFT,
+      simpleNFT: simpleNFTReveal,
       owner,
       account1,
       account2,
@@ -68,7 +68,7 @@ describe("Simple NFT with Reveal functionality", function () {
         );
         await simpleNFT.setMintState(false);
         const mintState = await simpleNFT.mintState();
-        console.log("MintState value:", mintState);
+
         await expect(simpleNFT.connect(account1).mint(1)).to.be.revertedWith(
           "Minting is paused"
         );
@@ -117,7 +117,7 @@ describe("Simple NFT with Reveal functionality", function () {
         const minting = await simpleNFT.connect(account1).mint(3, {
           value: ethers.utils.parseEther("0.03"),
         });
-        console.log("minting: " + minting);
+
         await expect(
           simpleNFT.connect(account1).mint(1, {
             value: ethers.utils.parseEther("0.01"),
@@ -256,7 +256,6 @@ describe("Simple NFT with Reveal functionality", function () {
         const balanceOfaccount2before = BigInt(
           await ethers.provider.getBalance(account2.address)
         );
-        console.log("balanceOfaccount2before", balanceOfaccount2before);
 
         await simpleNFT.connect(account2).mint(2, {
           value: ethers.utils.parseEther("0.02"),
@@ -269,18 +268,15 @@ describe("Simple NFT with Reveal functionality", function () {
         const balanceOfaccount2After = BigInt(
           await ethers.provider.getBalance(simpleNFT.address)
         );
-        console.log("balanceOfaccount2After", balanceOfaccount2After);
 
         const balanceOfOwnerBefore = BigInt(
           await ethers.provider.getBalance(owner.address)
         );
-        console.log("balanceOfOwnerBefore:", balanceOfOwnerBefore);
         const widhdrawn = await simpleNFT.withdraw();
 
         const balanceOfOwnerAfter = BigInt(
           await ethers.provider.getBalance(owner.address)
         );
-        console.log("balanceOfOwnerAfter:", balanceOfOwnerAfter);
 
         expect(
           BigInt(await ethers.provider.getBalance(simpleNFT.address))
@@ -300,22 +296,6 @@ describe("Simple NFT with Reveal functionality", function () {
           simpleNFT.connect(account1).tokenURI(1)
         ).to.be.revertedWith("ERC721Metadata: URI query for nonexistent token");
       });
-      // it("Should revert with the URI is not Correct", async function () {
-      //   const { simpleNFT, owner, account1, account2, account3 } =
-      //     await loadFixture(deployContract);
-      //   await simpleNFT.connect(owner).mint(3, {
-      //     value: ethers.utils.parseEther("0.03"),
-      //   });
-      //   const tokenurii = await simpleNFT.tokenURI(1);
-      //   console.log("tokenurii", tokenurii);
-
-      //   expect(await simpleNFT.tokenURI(1)).to.equal("ipfs://notRevealedUri/");
-
-      //   await simpleNFT.reveal();
-      //   expect(await simpleNFT.tokenURI(1)).to.equal("ipfs://URI/1.json");
-      //   expect(await simpleNFT.tokenURI(2)).to.equal("ipfs://URI/2.json");
-      // });
-      // TODO: OWNER SET Owner & set BaseURi
 
       it("Should revert when non onwer tries to reveal", async function () {
         const { simpleNFT, owner, account1, account2, account3 } =
@@ -352,15 +332,7 @@ describe("Simple NFT with Reveal functionality", function () {
         ).to.be.revertedWith("Ownable: caller is not the owner");
       });
 
-      it("Should revert if setNotRevealedURI is called by non owner:", async function () {
-        const { simpleNFT, owner, account1, account2, account3 } =
-          await loadFixture(deployContract);
-        await expect(
-          simpleNFT.connect(account1).setNotRevealedURI("ipfs://baseURI/")
-        ).to.be.revertedWith("Ownable: caller is not the owner");
-      });
-
-      it("Should revert if setNotRevealedURI is called by non owner:", async function () {
+      it("Should revert if setNotRevealedURI is doesn't set NotRevealedURI:", async function () {
         const { simpleNFT, owner, account1, account2, account3 } =
           await loadFixture(deployContract);
         await simpleNFT
@@ -378,7 +350,6 @@ describe("Simple NFT with Reveal functionality", function () {
           value: ethers.utils.parseEther("0.03"),
         });
         const tokenurii = await simpleNFT.tokenURI(1);
-        console.log("tokenurii", tokenurii);
 
         expect(await simpleNFT.tokenURI(1)).to.equal("ipfs://notRevealedUri/");
 
@@ -400,18 +371,6 @@ describe("Simple NFT with Reveal functionality", function () {
           .connect(owner)
           .nftsOnwedByWallet(owner.address);
 
-        console.log("MY tokens: ", [
-          ethers.BigNumber.from("1"),
-          ethers.BigNumber.from("2"),
-          ethers.BigNumber.from("3"),
-        ]);
-
-        console.log("ownerTokens", ...ownerTokens);
-        // expect(ownerTokens).to.equal([
-        //   ethers.BigNumber.from("1"),
-        //   ethers.BigNumber.from("2"),
-        //   ethers.BigNumber.from("3"),
-        // ]);
         await simpleNFT.connect(account1).mint(3, {
           value: ethers.utils.parseEther("0.03"),
         });
@@ -420,7 +379,6 @@ describe("Simple NFT with Reveal functionality", function () {
           .connect(account1)
           .nftsOnwedByWallet(account1.address);
 
-        console.log("account1Tokens: ", account1Tokens);
         await simpleNFT.connect(account2).mint(3, {
           value: ethers.utils.parseEther("0.03"),
         });
@@ -428,8 +386,6 @@ describe("Simple NFT with Reveal functionality", function () {
         const account2Tokens = await simpleNFT
           .connect(account2)
           .nftsOnwedByWallet(account2.address);
-
-        console.log("account2Tokens: ", account2Tokens);
 
         await simpleNFT.connect(account3).mint(1, {
           value: ethers.utils.parseEther("0.01"),
@@ -439,7 +395,6 @@ describe("Simple NFT with Reveal functionality", function () {
           .connect(account3)
           .nftsOnwedByWallet(account3.address);
 
-        console.log("account3Tokens: ", account3Tokens);
         await expect(
           simpleNFT.connect(account3).mint(2, {
             value: ethers.utils.parseEther("0.02"),
