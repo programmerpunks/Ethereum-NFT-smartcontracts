@@ -26,7 +26,7 @@ async function main() {
     ],
     [20, 25, 15, 20, 10, 10]
   );
-  console.log(`simpleNFTGift Contract address: ${nft.address}`);
+  console.log(`simpleNFTSplit Contract address: ${nft.address}`);
 }
 main()
   .then(() => process.exit(0))
