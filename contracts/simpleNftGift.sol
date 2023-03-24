@@ -71,6 +71,11 @@ contract simpleNFTGift is ERC721Enumerable, Ownable {
         uint256 supply = totalSupply();
         require(mintState, "Minting is paused");
         require(teamSupply > 0, "All Gift are dispatched");
+        require(
+            supply + _mintAmount <= maxSupply,
+            "Gift:Cannot mint more than max Supply"
+        );
+
         require(_mintAmount <= teamSupply, "Cannot mint this amount as gift");
         require(_mintAmount > 0, "Mint amount Cannot be zero");
         require(
@@ -80,10 +85,6 @@ contract simpleNFTGift is ERC721Enumerable, Ownable {
         require(
             balanceOf(receiver) + _mintAmount <= maxMintAmount,
             "You cannot mint more than max NFTs for this wallet"
-        );
-        require(
-            supply + _mintAmount <= maxSupply,
-            "Cannot mint more than max Supply"
         );
 
         require(msg.value >= cost * _mintAmount, "Cost Error");
