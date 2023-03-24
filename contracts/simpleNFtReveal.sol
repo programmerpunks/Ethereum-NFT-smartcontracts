@@ -69,14 +69,18 @@ contract simpleNFTReveal is ERC721Enumerable, Ownable {
         }
     }
 
-    function gift(uint256 _mintAmount, address receiver)
-        external
-        payable
-        onlyOwner
-    {
+    function gift(
+        uint256 _mintAmount,
+        address receiver
+    ) external payable onlyOwner {
         uint256 supply = totalSupply();
         require(mintState, "Minting is paused");
         require(teamSupply > 0, "All Gift are dispatched");
+        require(
+            supply + _mintAmount <= maxSupply,
+            "Gift:Cannot mint more than max Supply"
+        );
+
         require(_mintAmount <= teamSupply, "Cannot mint this amount as gift");
         require(_mintAmount > 0, "Mint amount Cannot be zero");
         require(
@@ -86,10 +90,6 @@ contract simpleNFTReveal is ERC721Enumerable, Ownable {
         require(
             balanceOf(receiver) + _mintAmount <= maxMintAmount,
             "You cannot mint more than max NFTs for this wallet"
-        );
-        require(
-            supply + _mintAmount <= maxSupply,
-            "Cannot mint more than max Supply"
         );
 
         require(msg.value >= cost * _mintAmount, "Cost Error");
@@ -101,13 +101,9 @@ contract simpleNFTReveal is ERC721Enumerable, Ownable {
 
     // public functions
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        virtual
-        override
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view virtual override returns (string memory) {
         require(
             _exists(tokenId),
             "ERC721Metadata: URI query for nonexistent token"
@@ -130,11 +126,9 @@ contract simpleNFTReveal is ERC721Enumerable, Ownable {
                 : "";
     }
 
-    function nftsOnwedByWallet(address _owner)
-        external
-        view
-        returns (uint256[] memory)
-    {
+    function nftsOnwedByWallet(
+        address _owner
+    ) external view returns (uint256[] memory) {
         uint256 ownerTokenCount = balanceOf(_owner);
         uint256[] memory tokenIds = new uint256[](ownerTokenCount);
         for (uint256 i; i < ownerTokenCount; i++) {
@@ -149,10 +143,9 @@ contract simpleNFTReveal is ERC721Enumerable, Ownable {
         revealed = true;
     }
 
-    function setNotRevealedURI(string memory _notRevealedURI)
-        external
-        onlyOwner
-    {
+    function setNotRevealedURI(
+        string memory _notRevealedURI
+    ) external onlyOwner {
         notRevealedUri = _notRevealedURI;
     }
 
@@ -168,10 +161,9 @@ contract simpleNFTReveal is ERC721Enumerable, Ownable {
         baseURI = _newBaseURI;
     }
 
-    function setBaseExtension(string memory _newBaseExtension)
-        external
-        onlyOwner
-    {
+    function setBaseExtension(
+        string memory _newBaseExtension
+    ) external onlyOwner {
         baseExtension = _newBaseExtension;
     }
 

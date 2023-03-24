@@ -597,6 +597,16 @@ describe("Simple NFT with Reveal functionality", function () {
             });
             gifted += maxMintAmount;
           } else {
+            await expect(
+              simpleNFT.gift(
+                toMint + 1,
+                accounts[lastAccountIndex + 1].address,
+                {
+                  value: ethers.utils.parseEther("" + cost),
+                }
+              )
+            ).to.be.revertedWith("Gift:Cannot mint more than max Supply");
+
             await simpleNFT.gift(toMint, accounts[index].address, {
               value: ethers.utils.parseEther("" + cost * toMint),
             });
