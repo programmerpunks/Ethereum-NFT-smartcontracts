@@ -78,8 +78,9 @@ contract StakingNFTs is Ownable, ReentrancyGuard, IERC721Receiver {
             stakeInfos[_tokenId].startTime == 0,
             "You have already staked this token"
         );
+
         require(
-            nftCollection.getApproved(_tokenId) == address(this),
+            nftCollection.isApprovedForAll(msg.sender, address(this)),
             "Approval for this NFT token is denied"
         );
 
@@ -96,10 +97,9 @@ contract StakingNFTs is Ownable, ReentrancyGuard, IERC721Receiver {
         return true;
     }
 
-    function unStakeTokens(uint256 _tokenId)
-        external
-        returns (bool isUnstaked)
-    {
+    function unStakeTokens(
+        uint256 _tokenId
+    ) external returns (bool isUnstaked) {
         StakeInfo memory tokenData = stakeInfos[_tokenId];
         // require(tokenData.startTime > 0, "This token is not Staked");
         require(
@@ -127,10 +127,9 @@ contract StakingNFTs is Ownable, ReentrancyGuard, IERC721Receiver {
         return true;
     }
 
-    function claimDailyRewards(uint256 _tokenId)
-        external
-        returns (bool Claimed)
-    {
+    function claimDailyRewards(
+        uint256 _tokenId
+    ) external returns (bool Claimed) {
         StakeInfo memory tokenData = stakeInfos[_tokenId];
         uint256 currentUnclaimedReward = unclaimedReward[_tokenId];
 
@@ -164,7 +163,6 @@ contract StakingNFTs is Ownable, ReentrancyGuard, IERC721Receiver {
                 currentRewardCreated + currentUnclaimedReward
             );
             delete unclaimedReward[_tokenId];
-            // }
         } else {
             require(
                 nftCollection.ownerOf(_tokenId) == msg.sender,
@@ -184,7 +182,9 @@ contract StakingNFTs is Ownable, ReentrancyGuard, IERC721Receiver {
         return true;
     }
 
-    function earningInfo(uint256 _tokenId)
+    function earningInfo(
+        uint256 _tokenId
+    )
         public
         view
         returns (

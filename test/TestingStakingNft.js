@@ -147,12 +147,12 @@ describe("StakingNFT contract", function () {
         stakingNFTs.connect(owner).stakeTokens(1)
       ).to.be.revertedWith("Approval for this NFT token is denied");
     });
-    it("All testings of Functios", async function () {
+    it("All testings of Functions", async function () {
       const { stakingNFTs, simpleNFT, erc20Tokens, owner, account1 } =
         await loadFixture(deployContract);
       await simpleNFT.mint(1, { value: ethers.utils.parseEther("0.01") });
 
-      await simpleNFT.approve(stakingNFTs.address, 1);
+      await simpleNFT.setApprovalForAll(stakingNFTs.address, true);
       // await expect(stakingNFTs.connect(owner).stakeTokens(1))
       //   .emit(stakingNFTs, "Staked")
       //   .withArgs(owner.address, time.latest(), 0);
@@ -181,7 +181,7 @@ describe("StakingNFT contract", function () {
         await loadFixture(deployContract);
       await simpleNFT.mint(1, { value: ethers.utils.parseEther("0.01") });
 
-      await simpleNFT.approve(stakingNFTs.address, 1);
+      await simpleNFT.setApprovalForAll(stakingNFTs.address, true);
       await expect(
         stakingNFTs.connect(account1).unStakeTokens(1)
       ).to.be.revertedWith(
@@ -204,7 +204,9 @@ describe("StakingNFT contract", function () {
         .connect(account1)
         .mint(1, { value: ethers.utils.parseEther("0.01") });
 
-      await simpleNFT.connect(account1).approve(stakingNFTs.address, 1);
+      await simpleNFT
+        .connect(account1)
+        .setApprovalForAll(stakingNFTs.address, true);
       // stake token 1
       await stakingNFTs.connect(account1).stakeTokens(1);
 
@@ -231,7 +233,9 @@ describe("StakingNFT contract", function () {
         .connect(account1)
         .mint(1, { value: ethers.utils.parseEther("0.01") });
 
-      await simpleNFT.connect(account1).approve(stakingNFTs.address, 1);
+      await simpleNFT
+        .connect(account1)
+        .setApprovalForAll(stakingNFTs.address, true);
       // stake token 1
       await stakingNFTs.connect(account1).stakeTokens(1);
 
@@ -264,7 +268,9 @@ describe("StakingNFT contract", function () {
         .connect(account1)
         .mint(1, { value: ethers.utils.parseEther("0.01") });
 
-      await simpleNFT.connect(account1).approve(stakingNFTs.address, 1);
+      await simpleNFT
+        .connect(account1)
+        .setApprovalForAll(stakingNFTs.address, true);
       // stake token 1
       await stakingNFTs.connect(account1).stakeTokens(1);
 
@@ -292,7 +298,9 @@ describe("StakingNFT contract", function () {
         .connect(account1)
         .mint(1, { value: ethers.utils.parseEther("0.01") });
 
-      await simpleNFT.connect(account1).approve(stakingNFTs.address, 1);
+      await simpleNFT
+        .connect(account1)
+        .setApprovalForAll(stakingNFTs.address, true);
       // stake token 1
       await stakingNFTs.connect(account1).stakeTokens(1);
 
@@ -345,7 +353,9 @@ describe("StakingNFT contract", function () {
         .connect(account1)
         .mint(1, { value: ethers.utils.parseEther("0.01") });
 
-      await simpleNFT.connect(account1).approve(stakingNFTs.address, 1);
+      await simpleNFT
+        .connect(account1)
+        .setApprovalForAll(stakingNFTs.address, true);
       // stake token 1
       await stakingNFTs.connect(account1).stakeTokens(1);
 
@@ -407,19 +417,21 @@ describe("StakingNFT contract", function () {
         .connect(account1)
         .mint(1, { value: ethers.utils.parseEther("0.01") });
 
-      await simpleNFT.connect(account1).approve(stakingNFTs.address, 1);
+      await simpleNFT
+        .connect(account1)
+        .setApprovalForAll(stakingNFTs.address, true);
       // stake token 1
       await stakingNFTs.connect(account1).stakeTokens(1);
 
       let currtime = await time.latest();
-      let days7 = currtime + 3 * 86400;
-      await time.increaseTo(days7);
+      let days3 = currtime + 3 * 86400;
+      await time.increaseTo(days3);
 
       const data2 = await stakingNFTs.connect(account1).earningInfo(1);
       console.log("Data2: " + data2);
 
       currtime = await time.latest();
-      days7 = currtime + 4 * 86400;
+      let days7 = currtime + 4 * 86400;
       await time.increaseTo(days7);
 
       const data3 = await stakingNFTs.connect(account1).earningInfo(1);
@@ -479,12 +491,3 @@ describe("StakingNFT contract", function () {
     });
   });
 });
-
-// TODO: no rewarding tokenss.... and claim
-//
-// unstake immediately : done
-// unstake after 7 days : done
-// claim immediately :done
-// claim after 7 days : done
-// claim & unstake after 7 days :Done
-// unstake & claim after 7 days :Fone
