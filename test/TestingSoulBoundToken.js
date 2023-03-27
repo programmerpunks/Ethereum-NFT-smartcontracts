@@ -279,5 +279,106 @@ describe("SoulBoundToken Contract", function () {
         ).to.be.revertedWith("SBT's cannot be Transfered");
       });
     });
+    describe("Transfer Function Testing", function () {
+      it("all testing functions test", async function () {
+        const {
+          soulBoundToken,
+          owner,
+          account1,
+          account2,
+          account3,
+          account4,
+          account5,
+        } = await loadFixture(deployContract);
+
+        await soulBoundToken.safeMint(account1.address, 1, "ipfs://URI/1", [
+          "" + account2.address,
+          "" + account3.address,
+          "" + account4.address,
+        ]);
+
+        await soulBoundToken.safeMint(account2.address, 2, "ipfs://URI/2", [
+          "" + account1.address,
+          "" + account3.address,
+          "" + account4.address,
+        ]);
+
+        await expect(
+          soulBoundToken
+            .connect(account2)
+            .transferFrom(account1.address, owner.address, 2)
+        ).to.be.revertedWith("You cannot transfer SBT");
+        // "SBT's cannot be Transfered"
+
+        await expect(
+          soulBoundToken
+            .connect(account2)
+            .transferFrom(account1.address, ethers.constants.AddressZero, 2)
+        ).to.be.revertedWith("ERC721: transfer to the zero address");
+
+        await expect(
+          soulBoundToken
+            .connect(account2)
+            .transferFrom(ethers.constants.AddressZero, owner.address, 2)
+        ).to.be.revertedWith("ERC721: transfer from incorrect owner");
+
+        await expect(
+          soulBoundToken.connect(account2).approve(owner.address, 2)
+        ).to.be.revertedWith("SBT's cannot be Transfered");
+
+        // await expect(
+        //   await soulBoundToken.safeTransferFrom(
+        //     account2.address,
+        //     owner.address,
+        //     2
+        //   )
+        // ).to.be.revertedWith("SBT's cannot be Transfered");
+
+        await expect(soulBoundToken.connect(owner).burn(2)).to.be.revertedWith(
+          "Only token ownwer can burn this token"
+        );
+        await expect(
+          soulBoundToken.connect(account1).burn(2)
+        ).to.be.revertedWith("Only token ownwer can burn this token");
+        await expect(soulBoundToken.connect(account2).burn(2)).not.to.be
+          .reverted;
+
+        await expect(
+          soulBoundToken["safeTransferFrom(address,address,uint256)"](
+            account1.address,
+            account2.address,
+            1
+          )
+        ).to.be.revertedWith("You cannot transfer SBT");
+
+        await expect(
+          soulBoundToken["safeTransferFrom(address,address,uint256)"](
+            ethers.constants.AddressZero,
+            account2.address,
+            2
+          )
+        ).to.be.revertedWith("ERC721: invalid token ID");
+
+        await expect(
+          soulBoundToken
+            .connect(account2)
+            ["safeTransferFrom(address,address,uint256)"](
+              account2.address,
+              ethers.constants.AddressZero,
+              2
+            )
+        ).to.be.revertedWith("ERC721: transfer to the zero address");
+
+        await expect(
+          soulBoundToken
+            .connect(account2)
+            ["safeTransferFrom(address,address,uint256)"](
+              ethers.constants.AddressZero,
+              account3.address,
+              2
+            )
+        ).to.be.revertedWith("ERC721: invalid token ID");
+      });
+    });
   });
 });

@@ -61,11 +61,9 @@ contract SoulBoundToken is ERC721, ERC721URIStorage, Ownable {
         // RecoveryApprovalData[tokenId].ownerApproval = false;
     }
 
-    function validRecoveryAccounts(uint256 tokenId)
-        internal
-        view
-        returns (uint256 id)
-    {
+    function validRecoveryAccounts(
+        uint256 tokenId
+    ) internal view returns (uint256 id) {
         for (uint256 i = 0; i < noOfApprovalRequired; i++) {
             if (
                 RecoveryApprovalData[tokenId].Operators[i].operator ==
@@ -86,10 +84,10 @@ contract SoulBoundToken is ERC721, ERC721URIStorage, Ownable {
         RecoveryApprovalData[tokenId].Operators[id].approvals = approval;
     }
 
-    function recoverAppealOrganistion(uint256 tokenId, address _recipient)
-        external
-        onlyOwner
-    {
+    function recoverAppealOrganistion(
+        uint256 tokenId,
+        address _recipient
+    ) external onlyOwner {
         RecoveryApprovalData[tokenId].recipient = _recipient;
     }
 
@@ -105,19 +103,15 @@ contract SoulBoundToken is ERC721, ERC721URIStorage, Ownable {
 
     // The following functions are overrides required by Solidity.
 
-    function _burn(uint256 tokenId)
-        internal
-        override(ERC721, ERC721URIStorage)
-    {
+    function _burn(
+        uint256 tokenId
+    ) internal override(ERC721, ERC721URIStorage) {
         super._burn(tokenId);
     }
 
-    function tokenURI(uint256 tokenId)
-        public
-        view
-        override(ERC721, ERC721URIStorage)
-        returns (string memory)
-    {
+    function tokenURI(
+        uint256 tokenId
+    ) public view override(ERC721, ERC721URIStorage) returns (string memory) {
         return super.tokenURI(tokenId);
     }
 
@@ -129,9 +123,12 @@ contract SoulBoundToken is ERC721, ERC721URIStorage, Ownable {
     ) internal virtual override {
         uint256 noOfApprovals = 0;
         bool operatorApproved = false;
+        RecoveryApproval memory RecoveryDataForToken = RecoveryApprovalData[
+            firstTokenId
+        ];
+
         if (
-            msg.sender == RecoveryApprovalData[firstTokenId].issuedTo ||
-            msg.sender == owner()
+            msg.sender == RecoveryDataForToken.issuedTo || msg.sender == owner()
         ) {
             require(
                 from == address(0) || to == address(0),
@@ -142,22 +139,16 @@ contract SoulBoundToken is ERC721, ERC721URIStorage, Ownable {
         // else if (msg.sender == owner()) {}
         else {
             for (uint256 i = 0; i < noOfApprovalRequired; i++) {
-                if (
-                    RecoveryApprovalData[firstTokenId].Operators[i].approvals ==
-                    true
-                ) {
+                if (RecoveryDataForToken.Operators[i].approvals == true) {
                     noOfApprovals += 1;
                 }
 
-                if (
-                    RecoveryApprovalData[firstTokenId].Operators[i].operator ==
-                    msg.sender
-                ) {
+                if (RecoveryDataForToken.Operators[i].operator == msg.sender) {
                     operatorApproved = true;
                 }
             }
             if (
-                RecoveryApprovalData[firstTokenId].recipient != address(0) &&
+                RecoveryDataForToken.recipient != address(0) &&
                 noOfApprovalRequired == noOfApprovals &&
                 operatorApproved == true
             ) {
