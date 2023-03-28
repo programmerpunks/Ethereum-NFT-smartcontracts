@@ -193,11 +193,6 @@ describe("Mayc Contract:", function () {
         })
       ).to.be.revertedWith("Requested number exceeds maximum");
 
-      // let currtime = await time.latest();
-      // let unlockTime = currtime + 9 * 86400;
-      // await time.increaseTo(unlockTime);
-      // await maycContract.setStartingIndices();
-
       await maycContract.mintMutants(1, {
         value: ethers.utils.parseEther("0.01"),
       });
@@ -211,15 +206,6 @@ describe("Mayc Contract:", function () {
       await expect(
         maycContract.mintMutants(1, { value: ethers.utils.parseEther("0.01") })
       ).to.be.revertedWith("Public sale is not active");
-
-      // await maycContract.startPublicSale(
-      //   2 * 86400,
-      //   ethers.utils.parseEther("0.01")
-      // );
-
-      // await maycContract.mintMutants(1, {
-      //   value: ethers.utils.parseEther("0.01"),
-      // });
     });
   });
 
@@ -311,16 +297,6 @@ describe("Mayc Contract:", function () {
           .connect(account1)
           .getMutantIdForApeAndSerumCombination(0, 69)
       ).to.equal(30000);
-
-      // await maycContract
-      //   .connect(account1)
-      //   .getMutantIdForApeAndSerumCombination(0, 69);
-      // await maycContract
-      //   .connect(account1)
-      //   .getMutantIdForApeAndSerumCombination(0, 1);
-      //   await maycContract
-      //     .connect(account1)
-      //     .getMutantIdForApeAndSerumCombination(0, 0);
     });
   });
 
